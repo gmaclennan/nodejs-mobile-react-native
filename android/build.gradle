@@ -12,13 +12,19 @@ buildscript {
 apply plugin: 'com.android.library'
 
 def _nodeTargetSdkVersion = ((rootProject?.ext?.properties?.targetSdkVersion) ?: 22)
+def _nodeMinSdkVersion = ((rootProject?.ext?.properties?.minSdkVersion) ?: 16)
+def _compileNativeModulesSdkVersion = _nodeMinSdkVersion;
+if (_compileNativeModulesSdkVersion<21) {
+    // 21 is the minimum sdk version Node is built with.
+    _compileNativeModulesSdkVersion=21;
+}
 
 android {
     compileSdkVersion ((rootProject?.ext?.properties?.compileSdkVersion) ?: 23)
     buildToolsVersion ((rootProject?.ext?.properties?.buildToolsVersion) ?: "23.0.1")
 
     defaultConfig {
-        minSdkVersion ((rootProject?.ext?.properties?.minSdkVersion) ?: 16)
+        minSdkVersion _nodeMinSdkVersion
         targetSdkVersion _nodeTargetSdkVersion
         versionCode 1
         versionName "1.0"
@@ -32,20 +38,20 @@ android {
             abiFilters = project(":app").android.defaultConfig.ndk.abiFilters
         }
     }
-    
+
     externalNativeBuild {
         cmake {
             path "CMakeLists.txt"
         }
     }
-    
+
     sourceSets {
         main {
             jniLibs.srcDirs 'libnode/bin/'
         }
         main.assets.srcDirs += '../install/resources/nodejs-modules'
     }
-    
+
     lintOptions {
         abortOnError false
     }
@@ -305,7 +311,7 @@ if ("1".equals(shouldRebuildNativeModules)) {
         task "MakeToolchain${abi_name}" (type:Exec) {
             description = "Building a native toolchain to compile nodejs-mobile native modules for ${abi_name}."
             executable = "${ndk_bundle_path}/build/tools/make-standalone-toolchain.sh"
-            args "--toolchain=${temp_toolchain_name}-${temp_cc_ver}", "--arch=${temp_arch}", "--install-dir=${standalone_toolchain}", "--stl=libc++", "--force", "--platform=android-${_nodeTargetSdkVersion}"
+            args "--toolchain=${temp_toolchain_name}-${temp_cc_ver}", "--arch=${temp_arch}", "--install-dir=${standalone_toolchain}", "--stl=libc++", "--force", "--platform=android-${_compileNativeModulesSdkVersion}"
             outputs.file "${standalone_toolchain}"
         }
 
